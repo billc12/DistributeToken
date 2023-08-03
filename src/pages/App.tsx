@@ -1,11 +1,11 @@
 import { Suspense } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import { styled } from '@mui/material'
 import Header from '../components/Header'
 import Polling from '../components/essential/Polling'
 import Popups from '../components/essential/Popups'
 // import WarningModal from '../components/Modal/WarningModal'
-import ComingSoon from './ComingSoon'
+import DistributesToken from 'pages/distributesToken'
 import { ModalProvider } from 'context/ModalContext'
 import { routes } from 'constants/routes'
 import { ToastContainer } from 'react-toastify'
@@ -59,12 +59,7 @@ export default function App() {
               <Polling />
               {/* <WarningModal /> */}
               <Routes>
-                <Route path={routes.test1} element={<ComingSoon />} />
-                <Route path={routes.test2} element={<ComingSoon />} />
-                <Route path={routes.test3} element={<ComingSoon />}>
-                  <Route path={routes.test3 + routes.test3Desc} element={<ComingSoon />} />
-                </Route>
-                <Route path="*" element={<Navigate to={routes.test1} replace />} />
+                <Route path={routes.distributes} element={<DistributesToken />} />
               </Routes>
             </BodyWrapper>
             {/* <Footer /> */}

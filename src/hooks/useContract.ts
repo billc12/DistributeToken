@@ -49,6 +49,15 @@ function useContract(
   }, [ABI, account, address, chainId, library, queryChainId, withSignerIfPossible])
 }
 
+export function useBaseContract(
+  address: string | undefined,
+  ABI: any,
+  withSignerIfPossible = true,
+  queryChainId?: ChainId
+) {
+  return useContract(address, ABI, withSignerIfPossible, queryChainId)
+}
+
 export function useV2MigratorContract(queryChainId?: ChainId): Contract | null {
   return useContract(MIGRATOR_ADDRESS, MIGRATOR_ABI, true, queryChainId)
 }
