@@ -19,7 +19,7 @@ export enum ApprovalState {
 export function useApproveCallback(
   amountToApprove?: CurrencyAmount,
   spender?: string
-): [ApprovalState, () => Promise<void>] {
+): [ApprovalState, () => Promise<{ transactionReceipt: Promise<any> }>] {
   const { account } = useActiveWeb3React()
   const token = amountToApprove instanceof CurrencyAmount ? amountToApprove.currency : undefined
   const currentAllowance = useTokenAllowance(token, account ?? undefined, spender)
@@ -42,29 +42,29 @@ export function useApproveCallback(
   const tokenContract = useTokenContract(!token?.isNative ? token?.address : undefined)
   const addTransaction = useTransactionAdder()
 
-  const approve = useCallback(async (): Promise<void> => {
+  const approve = useCallback(async (): Promise<{ transactionReceipt: Promise<any> }> => {
     if (approvalState !== ApprovalState.NOT_APPROVED) {
       console.error('approve was called unnecessarily')
-      return
+      return Promise.reject('approve was called unnecessarily')
     }
     if (!token) {
       console.error('no token')
-      return
+      return Promise.reject('no token')
     }
 
     if (!tokenContract) {
       console.error('tokenContract is null')
-      return
+      return Promise.reject('tokenContract is null')
     }
 
     if (!amountToApprove) {
       console.error('missing amount to approve')
-      return
+      return Promise.reject('missing amount to approve')
     }
 
     if (!spender) {
       console.error('no spender')
-      return
+      return Promise.reject('no spender')
     }
 
     let useExact = false
@@ -83,6 +83,7 @@ export function useApproveCallback(
           summary: 'Approve ' + amountToApprove.currency.symbol,
           approval: { tokenAddress: token.address, spender: spender }
         })
+        return { transactionReceipt: response.wait(1) }
       })
       .catch((error: Error) => {
         console.debug('Failed to approve token', error)
