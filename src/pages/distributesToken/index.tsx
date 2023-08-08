@@ -4,7 +4,7 @@ import { Currency } from 'constants/token/currency'
 import { useActiveWeb3React } from 'hooks'
 import { useMemo, useState } from 'react'
 import { isAddress } from 'utils'
-import { useCurrencyBalance } from 'state/wallet/hooks'
+import { useCurrencyBalance, useToken } from 'state/wallet/hooks'
 import { CurrencyAmount } from 'constants/token/fractions/currencyAmount'
 import { useWalletModalToggle } from 'state/application/hooks'
 import { useSwitchNetwork } from 'hooks/useSwitchNetwork'
@@ -45,13 +45,21 @@ const DistributesToken = () => {
     () => !!isAddress(tokenAddress) && tokenList.some(i => isAddress(i.address) === isAddress(tokenAddress)),
     [tokenAddress]
   )
+  const TOKEN_CURRENCY = useToken(tokenAddress, ChainId.SEPOLIA)
   const tokenCurrency = useMemo(() => {
-    if (account && chainId === ChainId.SEPOLIA && isValidAddress) {
-      const token = new Currency(ChainId.SEPOLIA, '0x5c58eC0b4A18aFB85f9D6B02FE3e6454f988436E', 6, 'USDT', 'USDT', '')
+    if (account && TOKEN_CURRENCY && chainId === TOKEN_CURRENCY?.chainId && isValidAddress) {
+      const token = new Currency(
+        TOKEN_CURRENCY?.chainId,
+        TOKEN_CURRENCY?.address,
+        TOKEN_CURRENCY?.decimals,
+        TOKEN_CURRENCY?.symbol,
+        TOKEN_CURRENCY?.name,
+        ''
+      )
       return token
     }
     return undefined
-  }, [account, chainId, isValidAddress])
+  }, [TOKEN_CURRENCY, account, chainId, isValidAddress])
 
   const balanceCurrency = useCurrencyBalance(account ?? undefined, tokenCurrency ?? undefined, chainId)
   const currentAmount = useMemo(() => {
@@ -81,8 +89,8 @@ const DistributesToken = () => {
   }
   const ActionButton = () => {
     if (!account) return <Button onClick={walletModalToggle}>Connect Wallet</Button>
-    if (chainId !== ChainId.SEPOLIA)
-      return <Button onClick={() => switchNetwork(ChainId.SEPOLIA)}>Switch Network</Button>
+    if (chainId !== TOKEN_CURRENCY?.chainId)
+      return <Button onClick={() => switchNetwork(TOKEN_CURRENCY?.chainId)}>Switch Network</Button>
     if (currentAmount?.isInsufficient) return <Button disabled>余额不足</Button>
     if (approvalState === ApprovalState.PENDING) return <Button>正在授权</Button>
     if (approvalState === ApprovalState.NOT_APPROVED) return <Button onClick={toApprove}>去授权</Button>

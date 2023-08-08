@@ -10,6 +10,11 @@ export const BAST_TOKEN: { [chainId in ChainId]?: Currency } = {
   [ChainId.MAINNET]: new Currency(ChainId.MAINNET, '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D', 18, 'USDT', 'USDT')
 }
 
+export const DISTRIBUTE_TOKEN: { [chainId in ChainId]?: string } = {
+  [ChainId.MAINNET]: '',
+  [ChainId.SEPOLIA]: '0x807c6a747c8646079968d87796c3a2f109b1b2fd'
+}
+
 export const SELECTABLE_ENABLE_WALLETS: ConnectionType[] = [
   ConnectionType.INJECTED,
   ConnectionType.WALLET_CONNECT_V2,

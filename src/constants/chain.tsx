@@ -2,6 +2,7 @@ import BigNumberjs from 'bignumber.js'
 import EthUrl from 'assets/svg/eth_logo.svg'
 import BSCUrl from 'assets/svg/binance.svg'
 import ZkevmSrc from 'assets/images/zkevm_logo.png'
+import BaseUrl from 'assets/svg/base.svg'
 
 export function numberToHex(number: number) {
   return '0x' + new BigNumberjs(number).toString(16)
@@ -30,6 +31,7 @@ export enum ChainId {
   DOGECHAIN = 2000,
   KAVA = 2222,
   KLAYTN = 8217,
+  BASE = 8453,
   FUSION = 32659,
   ARBITRUM = 42161,
   CELO = 42220,
@@ -313,6 +315,19 @@ export const SUPPORTED_NETWORKS: {
     },
     rpcUrls: ['https://public-node-api.klaytnapi.com/v1/cypress'],
     blockExplorerUrls: ['https://scope.klaytn.com/']
+  },
+  [ChainId.BASE]: {
+    id: ChainId.BASE,
+    hexChainId: numberToHex(ChainId.BASE),
+    chainName: 'Base',
+    nativeCurrency: {
+      name: 'ETH',
+      symbol: 'ETH',
+      decimals: 18,
+      logo: BaseUrl
+    },
+    rpcUrls: ['https://mainnet.base.org'],
+    blockExplorerUrls: ['https://basescan.org']
   },
   [ChainId.FUSION]: {
     id: ChainId.FUSION,

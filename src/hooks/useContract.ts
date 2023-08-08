@@ -12,7 +12,9 @@ import { useActiveWeb3React } from './index'
 import { ChainId } from '../constants/chain'
 import ERC721_ABI from '../constants/abis/erc721.json'
 import ERC1155_ABI from '../constants/abis/erc1155.json'
+import TRANSFER_ABI from '../constants/abis/transfer-token.json'
 import { getOtherNetworkLibrary } from 'connection/MultiNetworkConnector'
+import { DISTRIBUTE_TOKEN } from '../constants'
 
 // returns null on errors
 function useContract(
@@ -128,4 +130,14 @@ export function useERC721Contract(address: string | undefined, queryChainId?: Ch
 
 export function useERC1155Contract(address: string | undefined, queryChainId?: ChainId): Contract | null {
   return useContract(address, ERC1155_ABI, true, queryChainId)
+}
+
+export function useTransferTokenContract(queryChainId?: ChainId): Contract | null {
+  const { chainId } = useActiveWeb3React()
+  return useContract(
+    queryChainId || chainId ? DISTRIBUTE_TOKEN[(queryChainId || chainId) as ChainId] : undefined,
+    TRANSFER_ABI,
+    true,
+    queryChainId
+  )
 }
