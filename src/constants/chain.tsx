@@ -326,8 +326,8 @@ export const SUPPORTED_NETWORKS: {
       decimals: 18,
       logo: BaseUrl
     },
-    rpcUrls: ['https://mainnet.base.org'],
-    blockExplorerUrls: ['https://basescan.org']
+    rpcUrls: ['https://mainnet.base.org/'],
+    blockExplorerUrls: ['https://basescan.org/']
   },
   [ChainId.FUSION]: {
     id: ChainId.FUSION,

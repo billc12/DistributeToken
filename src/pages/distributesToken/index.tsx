@@ -1,82 +1,86 @@
 import { Box, Button, OutlinedInput, Stack, Typography } from '@mui/material'
-import { ChainId } from 'constants/chain'
-import { Currency } from 'constants/token/currency'
 import { useActiveWeb3React } from 'hooks'
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { isAddress } from 'utils'
 import { useCurrencyBalance, useToken } from 'state/wallet/hooks'
 import { CurrencyAmount } from 'constants/token/fractions/currencyAmount'
 import { useWalletModalToggle } from 'state/application/hooks'
 import { useSwitchNetwork } from 'hooks/useSwitchNetwork'
 import { ApprovalState, useApproveCallback } from 'hooks/useApproveCallback'
-interface Token {
-  chainId: ChainId
-  address: string
-  decimals: number
-  symbol?: string
-  logoURI?: string
-  name?: string
-  dangerous?: boolean
-}
-interface IAccount {
-  account: string
-  amount: string
-}
-const tokenList: Token[] = [
-  {
-    chainId: ChainId.SEPOLIA,
-    name: 'USDT',
-    address: '0x5c58eC0b4A18aFB85f9D6B02FE3e6454f988436E',
-    symbol: 'USDT',
-    decimals: 6,
-    logoURI: ''
-  } //0xB7912cCB16F4CBfB807e23ff4BD1eD1B001B70dF
-  // 0xeeD4F9e2d60a315d171F6d034b8D08c5E905f30D
-]
-const connectAddress = '0xa1d5fbd7ed05a6da1c03dc372a7dcd3332c48fd8'
+import { useTransfer } from 'hooks/useTransferToken'
+import useModal from 'hooks/useModal'
+import TransactionPendingModal from 'components/Modal/TransactionModals/TransactionPendingModal'
+import TransactionSubmittedModal from 'components/Modal/TransactionModals/TransactiontionSubmittedModal'
+import MessageBox from 'components/Modal/TransactionModals/MessageBox'
+import { DISTRIBUTE_TOKEN } from '../../constants'
+import isZero from 'utils/isZero'
+
 const DistributesToken = () => {
   const { account, chainId } = useActiveWeb3React()
-  const [tokenAddress, setTokenAddress] = useState('0x5c58eC0b4A18aFB85f9D6B02FE3e6454f988436E')
-
-  const [accountList, setAccountList] = useState<IAccount[]>([
-    { account: '0xB7912cCB16F4CBfB807e23ff4BD1eD1B001B70dF', amount: '' }
-  ])
-  const isValidAddress = useMemo(
-    () => !!isAddress(tokenAddress) && tokenList.some(i => isAddress(i.address) === isAddress(tokenAddress)),
-    [tokenAddress]
-  )
-  const TOKEN_CURRENCY = useToken(tokenAddress, ChainId.SEPOLIA)
-  const tokenCurrency = useMemo(() => {
-    if (account && TOKEN_CURRENCY && chainId === TOKEN_CURRENCY?.chainId && isValidAddress) {
-      const token = new Currency(
-        TOKEN_CURRENCY?.chainId,
-        TOKEN_CURRENCY?.address,
-        TOKEN_CURRENCY?.decimals,
-        TOKEN_CURRENCY?.symbol,
-        TOKEN_CURRENCY?.name,
-        ''
-      )
-      return token
-    }
-    return undefined
-  }, [TOKEN_CURRENCY, account, chainId, isValidAddress])
-
-  const balanceCurrency = useCurrencyBalance(account ?? undefined, tokenCurrency ?? undefined, chainId)
+  const { showModal, hideModal } = useModal()
+  const [content, setContent] = useState('')
+  const [tokenAddress, setTokenAddress] = useState('0x0000000000000000000000000000000000000000')
+  // const [tokenAddress, setTokenAddress] = useState('0xbE3111856e4acA828593274eA6872f27968C8DD6')
+  const { run: distribute } = useTransfer()
+  const isValidAddress = useMemo(() => !!isAddress(tokenAddress), [tokenAddress])
+  const TOKEN_CURRENCY = useToken(tokenAddress, chainId)
+  const balanceCurrency = useCurrencyBalance(account ?? undefined, TOKEN_CURRENCY ?? undefined, chainId)
   const currentAmount = useMemo(() => {
-    if (!tokenCurrency) return null
-    if (!accountList.every(item => item.account && Number(item.amount) > 0)) return null
-    let totalCurrencyAmount = CurrencyAmount.fromAmount(tokenCurrency, accountList[0].amount)
-    accountList.forEach((item, index) => {
-      if (index) {
-        totalCurrencyAmount = totalCurrencyAmount?.add(
-          CurrencyAmount.fromAmount(tokenCurrency, item.amount) as CurrencyAmount
-        )
+    if (!TOKEN_CURRENCY || !content) return null
+    const userAddr: string[] = []
+    const userAmount: any[] = []
+    const splitArr = content.trim().split('\n')
+    splitArr.forEach(item => {
+      const addr = item.split('=')[0]
+      const amount = item.split('=')[1]
+      if (addr && isAddress(addr) && amount && Number(amount) > 0) {
+        userAddr.push(addr)
+        userAmount.push(CurrencyAmount.fromAmount(TOKEN_CURRENCY, amount) as CurrencyAmount)
       }
     })
-    const isInsufficient = totalCurrencyAmount?.greaterThan(balanceCurrency as CurrencyAmount)
-    return { isInsufficient, totalCurrencyAmount }
-  }, [tokenCurrency, accountList, balanceCurrency])
-  const [approvalState, approve] = useApproveCallback(currentAmount?.totalCurrencyAmount, connectAddress)
+    let totalCurrencyAmount = CurrencyAmount.fromAmount(TOKEN_CURRENCY, '0')
+    userAmount &&
+      userAmount.forEach((item: CurrencyAmount) => {
+        totalCurrencyAmount = totalCurrencyAmount ? totalCurrencyAmount.add(item) : item
+      })
+
+    const isInsufficient = balanceCurrency && totalCurrencyAmount?.greaterThan(balanceCurrency as CurrencyAmount)
+    return { isInsufficient, totalCurrencyAmount, userAddr, userAmount }
+  }, [TOKEN_CURRENCY, balanceCurrency, content])
+  const [approvalState, approve] = useApproveCallback(
+    currentAmount?.totalCurrencyAmount,
+    DISTRIBUTE_TOKEN[TOKEN_CURRENCY?.chainId || 1]
+  )
+  console.log(currentAmount?.userAddr, currentAmount?.userAmount)
+
+  const distributeClick = useCallback(() => {
+    if (!currentAmount?.userAddr || !currentAmount?.totalCurrencyAmount) return
+    showModal(<TransactionPendingModal />)
+    const isEth = isZero(tokenAddress)
+    const strArr = currentAmount.userAmount.map((item: CurrencyAmount) => item.raw.toString())
+    distribute(isEth, tokenAddress, currentAmount?.userAddr, strArr, currentAmount?.totalCurrencyAmount)
+      .then(() => {
+        hideModal()
+        showModal(<TransactionSubmittedModal />)
+      })
+      .catch(err => {
+        hideModal()
+        showModal(
+          <MessageBox type="error">
+            {err?.data?.message || err?.error?.message || err?.message || 'unknown error'}
+          </MessageBox>
+        )
+        console.error(err, JSON.stringify(err))
+      })
+  }, [
+    currentAmount?.totalCurrencyAmount,
+    currentAmount?.userAddr,
+    currentAmount?.userAmount,
+    distribute,
+    hideModal,
+    showModal,
+    tokenAddress
+  ])
 
   const walletModalToggle = useWalletModalToggle()
   const switchNetwork = useSwitchNetwork()
@@ -87,23 +91,24 @@ const DistributesToken = () => {
       console.log(res)
     })
   }
+
   const ActionButton = () => {
     if (!account) return <Button onClick={walletModalToggle}>Connect Wallet</Button>
     if (chainId !== TOKEN_CURRENCY?.chainId)
       return <Button onClick={() => switchNetwork(TOKEN_CURRENCY?.chainId)}>Switch Network</Button>
-    if (currentAmount?.isInsufficient) return <Button disabled>余额不足</Button>
-    if (approvalState === ApprovalState.PENDING) return <Button>正在授权</Button>
-    if (approvalState === ApprovalState.NOT_APPROVED) return <Button onClick={toApprove}>去授权</Button>
-    if (approvalState === ApprovalState.APPROVED) return <Button>交易</Button>
-    return null
+    if (currentAmount?.isInsufficient) return <Button disabled>Balance Insufficient</Button>
+    if (approvalState === ApprovalState.PENDING) return <Button>Approving {TOKEN_CURRENCY?.symbol}</Button>
+    if (approvalState === ApprovalState.NOT_APPROVED) return <Button onClick={toApprove}>Approve</Button>
+    if (approvalState === ApprovalState.APPROVED) return <Button onClick={distributeClick}>Transfer</Button>
+    return <Button onClick={distributeClick}>Transfer</Button>
   }
   return (
     <Box sx={{ width: 500 }}>
       <Box>
         <Stack sx={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Typography>转移的token地址</Typography>
+          <Typography lineHeight={'150%'}>Transfer Token Address</Typography>
           <Typography>
-            token balance : <Typography component={'span'}>{balanceCurrency?.toSignificant(30)}</Typography>
+            Token Balance : <Typography component={'span'}>{balanceCurrency?.toSignificant(30)}</Typography>
           </Typography>
         </Stack>
         <OutlinedInput
@@ -111,42 +116,27 @@ const DistributesToken = () => {
           onChange={e => setTokenAddress(e.target.value)}
           sx={{ width: '100%', marginTop: 10 }}
         />
-        {tokenAddress && !isValidAddress && <Typography>请输入正确的token地址</Typography>}
+        {tokenAddress && !isValidAddress && <Typography>Please enter valid address</Typography>}
       </Box>
-      <Box>
-        {accountList.map((item, index) => (
-          <Stack
-            key={index}
-            sx={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}
-          >
-            <Box>
-              <Typography>用户地址</Typography>
-              <OutlinedInput
-                sx={{ width: 200 }}
-                value={item.account}
-                onChange={({ target }) => {
-                  const newArr = [...accountList]
-                  newArr[index].account = target.value
-                  setAccountList([...newArr])
-                }}
-              />
-            </Box>
-            <Box>
-              <Typography>数量</Typography>
-              <OutlinedInput
-                sx={{ width: 200 }}
-                value={item.amount}
-                onChange={({ target }) => {
-                  const newArr = [...accountList]
-                  newArr[index].amount = target.value
-                  setAccountList([...newArr])
-                }}
-              />
-            </Box>
-            <Button onClick={() => setAccountList([...accountList, { account: '', amount: '' }])}>增加</Button>
-          </Stack>
-        ))}
-      </Box>
+      <Stack
+        sx={{
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: 10,
+          '& .MuiInputBase-root': { width: 500 }
+        }}
+        mt={40}
+        mb={40}
+      >
+        <OutlinedInput
+          placeholder="input address and amount connect with ‘=’"
+          multiline
+          value={content}
+          onChange={e => setContent(e.target.value)}
+          inputProps={{ sx: { minHeight: 144 } }}
+        />
+      </Stack>
       <ActionButton />
     </Box>
   )

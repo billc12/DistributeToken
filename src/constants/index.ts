@@ -12,7 +12,7 @@ export const BAST_TOKEN: { [chainId in ChainId]?: Currency } = {
 
 export const DISTRIBUTE_TOKEN: { [chainId in ChainId]?: string } = {
   [ChainId.MAINNET]: '',
-  [ChainId.SEPOLIA]: '0x807c6a747c8646079968d87796c3a2f109b1b2fd'
+  [ChainId.BASE]: '0x807c6a747c8646079968d87796c3a2f109b1b2fd'
 }
 
 export const SELECTABLE_ENABLE_WALLETS: ConnectionType[] = [

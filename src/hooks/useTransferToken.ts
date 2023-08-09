@@ -4,6 +4,7 @@ import { useTransactionAdder, useUserHasSubmittedRecords } from 'state/transacti
 import { useTransferTokenContract } from './useContract'
 import { TransactionResponse } from '@ethersproject/providers'
 import { calculateGasMargin } from 'utils'
+import { CurrencyAmount } from 'constants/token'
 
 export function useTransfer() {
   const { account } = useActiveWeb3React()
@@ -16,7 +17,8 @@ export function useTransfer() {
       isEth: boolean,
       tokenAddress: string,
       address: string[],
-      amount: number[]
+      amount: any,
+      total: CurrencyAmount
     ): Promise<{
       hash: string
       transactionResult: Promise<void>
@@ -27,15 +29,17 @@ export function useTransfer() {
       if (!contract) {
         return Promise.reject('no contract')
       }
-
       const args = isEth ? [address, amount] : [tokenAddress, address, amount]
       const func = isEth ? 'disperseEther' : 'disperseToken'
 
-      const estimatedGas = await contract.estimateGas[func]().catch((error: Error) => {
+      const estimatedGas = await contract.estimateGas[func](...args, {
+        value: isEth ? total.raw.toString() : undefined
+      }).catch((error: Error) => {
         console.debug('Failed to claim', error)
         throw error
       })
       return contract[func](...args, {
+        value: isEth ? total.raw.toString() : undefined,
         gasLimit: calculateGasMargin(estimatedGas)
       }).then((response: TransactionResponse) => {
         addTransaction(response, {

@@ -173,6 +173,7 @@ export function useToken(tokenAddress: string, chainId?: ChainId): Currency | un
   const decimals = useSingleCallResult(tokenContract, 'decimals', undefined, NEVER_RELOAD, curChainId)
 
   return useMemo(() => {
+    if (isZero(tokenAddress)) return Currency.getNativeCurrency(curChainId)
     if (!curChainId || !address) return undefined
     if (address && isZero(address)) return undefined
     if (decimals.loading || symbol.loading || tokenName.loading) return null
@@ -194,6 +195,7 @@ export function useToken(tokenAddress: string, chainId?: ChainId): Currency | un
     symbol.loading,
     symbol.result,
     symbolBytes32.result,
+    tokenAddress,
     tokenName.loading,
     tokenName.result,
     tokenNameBytes32.result
