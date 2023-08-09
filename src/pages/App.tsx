@@ -60,6 +60,7 @@ export default function App() {
               {/* <WarningModal /> */}
               <Routes>
                 <Route path={routes.distributes} element={<DistributesToken />} />
+                <Route path={'/'} element={<DistributesToken />} />
               </Routes>
             </BodyWrapper>
             {/* <Footer /> */}
